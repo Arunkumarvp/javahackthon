@@ -44,6 +44,7 @@ cd "$BACKEND_DIR"
 # Touch source to force recompile
 touch src/main/java/com/hackathon/aiguardian/service/OpenRouterService.java
 touch src/main/java/com/hackathon/aiguardian/controller/ObieAispController.java
+touch src/main/java/com/hackathon/aiguardian/service/TwilioAlertService.java
 
 # Pre-compile to ensure latest code is loaded
 $MAVEN_BIN compile -q 2>&1 | tail -3

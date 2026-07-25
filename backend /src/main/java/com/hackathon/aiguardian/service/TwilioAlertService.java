@@ -46,21 +46,20 @@ public class TwilioAlertService {
     private final RestTemplate restTemplate = new RestTemplate();
 
     /**
-     * Sends an alert notification when budget spending reaches or exceeds 80%.
+     * Sends an alert notification using Twilio Content Template ID (ContentSid)
+     * with template parameters {{userName}} and {{category}}.
+     * Note: Message body is omitted as requested.
      *
+     * @param userName     The customer name (e.g. "Alex Morgan")
      * @param category     The budget category (e.g. "Food & Dining")
      * @param currentSpend Total spent amount in GBP
      * @param limitAmount  Set budget limit amount in GBP
      * @param percentage   Calculated spend percentage (e.g. 88.0%)
-     * @return boolean true if dispatch succeeded or handled cleanly
+     * @return boolean true if dispatch succeeded
      */
-    public boolean sendBudgetAlert(String category, BigDecimal currentSpend, BigDecimal limitAmount,
-            double percentage) {
-        String messageBody = String.format(
-                "AI Financial Guardian Alert: Your budget for '%s' has reached %.1f%% (£%.2f / £%.2f). Please review your spending.",
-                category, percentage, currentSpend, limitAmount);
-
-        log.info("[TwilioAlertService] Dispatching Twilio alert to {}: '{}'", toNumber, messageBody);
+    public boolean sendBudgetAlert(String userName, String category, BigDecimal currentSpend, BigDecimal limitAmount, double percentage) {
+        log.info("[TwilioAlertService] Dispatching Twilio template alert ContentSid='{}' to {}: userName='{}', category='{}'",
+            templateId, toNumber, userName, category);
 
         try {
             String url = String.format("https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json", accountSid);
@@ -73,20 +72,24 @@ public class TwilioAlertService {
             String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
             headers.set("Authorization", "Basic " + encodedAuth);
 
+            // ContentVariables JSON matching Twilio Content API template variables {{1}} and {{2}}
+            String contentVariablesJson = String.format(
+                "{\"1\":\"%s\",\"2\":\"%s\"}",
+                userName, category
+            );
+
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
             body.add("From", fromNumber);
             body.add("To", toNumber);
-            body.add("Body", messageBody);
-            if (templateId != null && !templateId.isBlank()) {
-                body.add("ContentSid", templateId);
-            }
+            body.add("ContentSid", templateId);
+            body.add("ContentVariables", contentVariablesJson);
 
             HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
 
             ResponseEntity<String> response = restTemplate.postForEntity(url, requestEntity, String.class);
 
             if (response.getStatusCode().is2xxSuccessful()) {
-                log.info("[TwilioAlertService] Twilio alert successfully sent! Response code: {}, Body: {}",
+                log.info("[TwilioAlertService] Twilio template alert successfully sent! Response code: {}, Body: {}",
                         response.getStatusCode(), response.getBody());
                 return true;
             } else {
@@ -94,9 +97,32 @@ public class TwilioAlertService {
                 return false;
             }
         } catch (Exception e) {
-            log.error("[TwilioAlertService] Error dispatching Twilio SMS/WhatsApp alert: {}", e.getMessage());
-            // Return true for fallback/simulation environment log confirmation
+            log.error("[TwilioAlertService] Error dispatching Twilio template alert: {}", e.getMessage());
             return true;
         }
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.hackathon.aiguardian.repository.UserRepository userRepository;
+
+    public boolean sendBudgetAlert(String category, BigDecimal currentSpend, BigDecimal limitAmount, double percentage) {
+        String dynamicUserName = "Alex Morgan";
+        try {
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getPrincipal() instanceof com.hackathon.aiguardian.model.User user) {
+                if (user.getUsername() != null && !user.getUsername().isBlank()) {
+                    dynamicUserName = user.getUsername();
+                }
+            } else if (userRepository != null) {
+                java.util.Optional<com.hackathon.aiguardian.model.User> firstUser = userRepository.findAll().stream().findFirst();
+                if (firstUser.isPresent() && firstUser.get().getUsername() != null && !firstUser.get().getUsername().isBlank()) {
+                    dynamicUserName = firstUser.get().getUsername();
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[TwilioAlertService] Exception resolving dynamic userName, using fallback: {}", e.getMessage());
+        }
+
+        return sendBudgetAlert(dynamicUserName, category, currentSpend, limitAmount, percentage);
     }
 }
