@@ -29,8 +29,8 @@ fi
 
 # Cleanup any existing processes
 echo "  Cleaning up existing processes..."
-fuser -k 8080/tcp 2>/dev/null || true
-fuser -k 3000/tcp 2>/dev/null || true
+sudo fuser -k -9 8080/tcp 2>/dev/null || fuser -k 8080/tcp 2>/dev/null || true
+sudo fuser -k -9 3000/tcp 2>/dev/null || fuser -k 3000/tcp 2>/dev/null || true
 pkill -f "AiGuardianApplication" 2>/dev/null || true
 pkill -f "localtunnel\|lt --port" 2>/dev/null || true
 sleep 2
@@ -43,6 +43,7 @@ cd "$BACKEND_DIR"
 
 # Touch source to force recompile
 touch src/main/java/com/hackathon/aiguardian/service/OpenRouterService.java
+touch src/main/java/com/hackathon/aiguardian/controller/ObieAispController.java
 
 # Pre-compile to ensure latest code is loaded
 $MAVEN_BIN compile -q 2>&1 | tail -3

@@ -12,8 +12,28 @@ export function ProfilePage() {
   useEffect(() => {
     async function fetchProfile() {
       try {
+        const savedUser = localStorage.getItem('wealthmanager_user');
+        let userObj = null;
+        if (savedUser) {
+          try { userObj = JSON.parse(savedUser); } catch(e){}
+        }
+
         const data = await chatService.getProfile();
-        setProfile(data);
+        if (userObj && userObj.username) {
+          const displayFullName = userObj.username
+            .split(/[._-]/)
+            .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(' ');
+
+          setProfile({
+            ...data,
+            username: userObj.username,
+            email: userObj.email || `${userObj.username}@wealthmanager.co.uk`,
+            fullName: displayFullName
+          });
+        } else {
+          setProfile(data);
+        }
       } catch (err) {
         console.error('[Profile] Failed to load profile:', err);
       } finally {

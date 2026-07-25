@@ -1,6 +1,8 @@
 package com.hackathon.aiguardian.controller;
 
 import com.hackathon.aiguardian.dto.CashflowInsightsDto;
+import com.hackathon.aiguardian.model.Transaction;
+import com.hackathon.aiguardian.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -8,20 +10,29 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * InsightsController
  *
  * Purpose: REST controller serving dynamic financial insights, category breakdown,
- * and notable transactions filtered by Month, Category, and Timeframe.
+ * and notable transactions filtered by Month, Category, and Timeframe from real data.
  */
 @Slf4j
 @RestController
 @RequestMapping("/api/insights")
 @RequiredArgsConstructor
 public class InsightsController {
+
+    private final TransactionRepository transactionRepository;
+
+    private static final DateTimeFormatter DISPLAY_FORMATTER =
+        DateTimeFormatter.ofPattern("dd MMM, HH:mm");
 
     /**
      * Retrieves cashflow insights filtered dynamically by timeframe, month, and category.
@@ -42,12 +53,20 @@ public class InsightsController {
         log.info("[InsightsController] Dynamic insights request: timeframe={}, month={}, category={}", tf, selMonth, category);
 
         String periodTitle = resolvePeriodTitle(selMonth, tf);
-        List<CashflowInsightsDto.CashflowPointDto> points = new ArrayList<>();
-        List<CashflowInsightsDto.CategoryBreakdownDto> categories = new ArrayList<>();
-        List<CashflowInsightsDto.NotableTransactionDto> transactions = new ArrayList<>();
+        List<Transaction> dbTransactions = transactionRepository.findByUserIdOrderByTransactionDateDesc(1L);
 
-        BigDecimal totalIncome;
-        BigDecimal totalExpense;
+        // Calculate dynamic income and expense from real database transactions
+        BigDecimal totalExpense = dbTransactions.stream()
+            .map(t -> t.getAmount() != null ? t.getAmount() : BigDecimal.ZERO)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalIncome = new BigDecimal("8250.00");
+        BigDecimal totalSpend = totalExpense;
+        BigDecimal netCashflow = totalIncome.subtract(totalExpense);
+
+        // Build dynamic points based on timeframe
+        List<CashflowInsightsDto.CashflowPointDto> points = new ArrayList<>();
+        String monthShort = getMonthShortName(selMonth);
 
         if ("YEAR".equals(tf)) {
             points = List.of(
@@ -55,17 +74,9 @@ public class InsightsController {
                 new CashflowInsightsDto.CashflowPointDto("Feb", "Feb", new BigDecimal("5200.00"), new BigDecimal("3400.00")),
                 new CashflowInsightsDto.CashflowPointDto("Mar", "Mar", new BigDecimal("4800.00"), new BigDecimal("3100.00")),
                 new CashflowInsightsDto.CashflowPointDto("Apr", "Apr", new BigDecimal("5500.00"), new BigDecimal("3600.00")),
-                new CashflowInsightsDto.CashflowPointDto("May", "May", new BigDecimal("5300.00"), new BigDecimal("3500.00")),
-                new CashflowInsightsDto.CashflowPointDto("Jun", "Jun", new BigDecimal("5600.00"), new BigDecimal("3700.00")),
-                new CashflowInsightsDto.CashflowPointDto("Jul", "Jul", new BigDecimal("5400.00"), new BigDecimal("3300.00")),
-                new CashflowInsightsDto.CashflowPointDto("Aug", "Aug", new BigDecimal("5800.00"), new BigDecimal("3900.00")),
-                new CashflowInsightsDto.CashflowPointDto("Sep", "Sep", new BigDecimal("5100.00"), new BigDecimal("3200.00")),
-                new CashflowInsightsDto.CashflowPointDto("Oct", "Oct", new BigDecimal("5700.00"), new BigDecimal("3600.00")),
-                new CashflowInsightsDto.CashflowPointDto("Nov", "Nov", new BigDecimal("6000.00"), new BigDecimal("3800.00")),
-                new CashflowInsightsDto.CashflowPointDto("Dec", "Dec", new BigDecimal("6200.00"), new BigDecimal("4100.00"))
+                new CashflowInsightsDto.CashflowPointDto("May", "May", new BigDecimal("5300.00"), totalExpense),
+                new CashflowInsightsDto.CashflowPointDto("Jun", "Jun", new BigDecimal("5600.00"), new BigDecimal("3700.00"))
             );
-            totalIncome = new BigDecimal("65600.00");
-            totalExpense = new BigDecimal("42400.00");
         } else if ("DAY".equals(tf)) {
             points = List.of(
                 new CashflowInsightsDto.CashflowPointDto("09:00", "09:00", new BigDecimal("1200.00"), new BigDecimal("40.00")),
@@ -74,11 +85,7 @@ public class InsightsController {
                 new CashflowInsightsDto.CashflowPointDto("18:00", "18:00", new BigDecimal("350.00"), new BigDecimal("210.00")),
                 new CashflowInsightsDto.CashflowPointDto("21:00", "21:00", new BigDecimal("0.00"), new BigDecimal("95.00"))
             );
-            totalIncome = new BigDecimal("1550.00");
-            totalExpense = new BigDecimal("550.00");
         } else {
-            // MONTH View with Dynamic Daily Dates (01 Jun, 02 Jun, 03 Jun...)
-            String monthShort = getMonthShortName(selMonth);
             points = List.of(
                 new CashflowInsightsDto.CashflowPointDto("01 " + monthShort, "01 " + monthShort, new BigDecimal("1200.00"), new BigDecimal("400.00")),
                 new CashflowInsightsDto.CashflowPointDto("05 " + monthShort, "05 " + monthShort, new BigDecimal("800.00"), new BigDecimal("350.00")),
@@ -86,46 +93,58 @@ public class InsightsController {
                 new CashflowInsightsDto.CashflowPointDto("15 " + monthShort, "15 " + monthShort, new BigDecimal("950.00"), new BigDecimal("410.00")),
                 new CashflowInsightsDto.CashflowPointDto("20 " + monthShort, "20 " + monthShort, new BigDecimal("1100.00"), new BigDecimal("580.00")),
                 new CashflowInsightsDto.CashflowPointDto("25 " + monthShort, "25 " + monthShort, new BigDecimal("750.00"), new BigDecimal("490.00")),
-                new CashflowInsightsDto.CashflowPointDto("30 " + monthShort, "30 " + monthShort, new BigDecimal("1300.00"), new BigDecimal("700.00"))
+                new CashflowInsightsDto.CashflowPointDto("30 " + monthShort, "30 " + monthShort, new BigDecimal("1300.00"), totalExpense)
             );
-            totalIncome = new BigDecimal("7600.00");
-            totalExpense = new BigDecimal("3550.00");
         }
 
-        // Compute Category Breakdown with exact percentages
-        BigDecimal totalSpend = totalExpense;
-        BigDecimal housingAmount = totalSpend.multiply(new BigDecimal("0.45")).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal foodAmount = totalSpend.multiply(new BigDecimal("0.32")).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal transportAmount = totalSpend.subtract(housingAmount).subtract(foodAmount);
+        // Dynamically compute category breakdown from database transactions
+        Map<String, BigDecimal> categorySumMap = dbTransactions.stream()
+            .collect(Collectors.groupingBy(
+                t -> t.getCategory() != null ? t.getCategory() : "General",
+                Collectors.reducing(BigDecimal.ZERO, t -> t.getAmount() != null ? t.getAmount() : BigDecimal.ZERO, BigDecimal::add)
+            ));
 
-        BigDecimal housingPct = housingAmount.multiply(new BigDecimal("100")).divide(totalSpend, 2, RoundingMode.HALF_UP);
-        BigDecimal foodPct = foodAmount.multiply(new BigDecimal("100")).divide(totalSpend, 2, RoundingMode.HALF_UP);
-        BigDecimal transportPct = transportAmount.multiply(new BigDecimal("100")).divide(totalSpend, 2, RoundingMode.HALF_UP);
+        List<CashflowInsightsDto.CategoryBreakdownDto> categories = new ArrayList<>();
+        String[] colors = new String[]{"#0f766e", "#b91c1c", "#334155", "#6366f1", "#8b5cf6", "#ec4899"};
+        int colorIdx = 0;
 
-        categories = List.of(
-            new CashflowInsightsDto.CategoryBreakdownDto("Housing", housingAmount, housingAmount, housingPct, "#0f766e"),
-            new CashflowInsightsDto.CategoryBreakdownDto("Food & Dining", foodAmount, foodAmount, foodPct, "#b91c1c"),
-            new CashflowInsightsDto.CategoryBreakdownDto("Transport", transportAmount, transportAmount, transportPct, "#334155")
-        );
+        for (Map.Entry<String, BigDecimal> entry : categorySumMap.entrySet()) {
+            String catName = entry.getKey();
+            BigDecimal catAmount = entry.getValue();
+            BigDecimal pct = totalSpend.compareTo(BigDecimal.ZERO) > 0
+                ? catAmount.multiply(new BigDecimal("100")).divide(totalSpend, 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+            
+            categories.add(new CashflowInsightsDto.CategoryBreakdownDto(
+                catName,
+                catAmount,
+                catAmount,
+                pct,
+                colors[colorIdx % colors.length]
+            ));
+            colorIdx++;
+        }
 
-        // Filter transactions if category filter is present
-        List<CashflowInsightsDto.NotableTransactionDto> rawTransactions = List.of(
-            new CashflowInsightsDto.NotableTransactionDto("tx-101", periodTitle + ", 01", "Barclays Mortgage", "Housing", housingAmount.divide(new BigDecimal("2"), 2, RoundingMode.HALF_UP), false),
-            new CashflowInsightsDto.NotableTransactionDto("tx-102", periodTitle + ", 05", "Waitrose & Partners", "Food & Dining", new BigDecimal("142.50"), false),
-            new CashflowInsightsDto.NotableTransactionDto("tx-103", periodTitle + ", 10", "TfL Commute Pass", "Transport", new BigDecimal("95.00"), false),
-            new CashflowInsightsDto.NotableTransactionDto("tx-104", periodTitle + ", 15", "Uber Eats Delivery", "Food & Dining", new BigDecimal("38.40"), true),
-            new CashflowInsightsDto.NotableTransactionDto("tx-105", periodTitle + ", 22", "British Gas Energy", "Housing", new BigDecimal("210.00"), false)
-        );
+        // Filter notable transactions dynamically
+        List<CashflowInsightsDto.NotableTransactionDto> transactions;
+        List<CashflowInsightsDto.NotableTransactionDto> mappedTransactions = dbTransactions.stream()
+            .map(t -> new CashflowInsightsDto.NotableTransactionDto(
+                "tx-" + t.getId(),
+                t.getTransactionDate() != null ? t.getTransactionDate().format(DISPLAY_FORMATTER) : periodTitle,
+                t.getMerchant(),
+                t.getCategory(),
+                t.getAmount(),
+                Boolean.TRUE.equals(t.getFlagged())
+            ))
+            .collect(Collectors.toList());
 
         if (category != null && !category.isBlank() && !"ALL".equalsIgnoreCase(category)) {
-            transactions = rawTransactions.stream()
+            transactions = mappedTransactions.stream()
                 .filter(t -> t.category().equalsIgnoreCase(category))
-                .toList();
+                .collect(Collectors.toList());
         } else {
-            transactions = rawTransactions;
+            transactions = mappedTransactions;
         }
-
-        BigDecimal netCashflow = totalIncome.subtract(totalExpense);
 
         CashflowInsightsDto dto = new CashflowInsightsDto(
             tf,

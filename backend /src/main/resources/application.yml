@@ -77,3 +77,12 @@ logging:
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %-36logger{36} — %msg%n"
 
+# ─── Twilio Alert Gateway ───────────────────────────────────────────────────
+twilio:
+  template-id: ${TWILIO_TEMPLATE_ID:HX4fdb88974ef98b0736268c6c02a7f806}
+  auth-token: ${TWILIO_AUTH_TOKEN:29ba9371a865996c4801172c5957ff02}
+  account-sid: ${TWILIO_ACCOUNT_SID:AC070142848016b183420bd19bf31815c3}
+  from-number: ${TWILIO_FROM_NUMBER:+14155238886}
+  to-number: ${TWILIO_TO_NUMBER:+919659505941}
+
+
