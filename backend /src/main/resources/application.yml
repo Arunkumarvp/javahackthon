@@ -40,7 +40,7 @@ openrouter:
   api-key: ${OPENROUTER_API_KEY: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}
   backup-key: ${OPENROUTER_BACKUP_KEY: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}
   base-url: ${OPENROUTER_BASE_URL:https://openrouter.ai/api/v1}
-  model: ${OPENROUTER_MODEL:anthropic/claude-3.5-sonnet}
+  model: ${OPENROUTER_MODEL:nvidia/nemotron-3-super-120b-a12b:free}
   timeout-ms: ${OPENROUTER_TIMEOUT_MS:30000}
   app-url: ${APP_URL:http://localhost:8080}
 

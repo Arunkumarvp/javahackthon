@@ -136,8 +136,11 @@ public class OpenRouterService {
         String maskedMessage, List<String> ragChunks, String sessionId, String agentType
     ) {
         List<String> candidateModels = List.of(
-            configuredModel,
-            "openrouter/free"
+            "nvidia/nemotron-3-super-120b-a12b:free",
+            "google/gemma-4-31b-it:free",
+            "openai/gpt-oss-20b:free",
+            "nvidia/nemotron-3-ultra-550b-a55b:free",
+            "nvidia/nemotron-3-nano-30b-a3b:free"
         );
 
         List<String> apiKeys = new ArrayList<>();

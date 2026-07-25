@@ -27,11 +27,26 @@ else
     echo "⚠ Docker not installed — using in-memory Java RAG engine."
 fi
 
+# Cleanup any existing processes
+echo "  Cleaning up existing processes..."
+fuser -k 8080/tcp 2>/dev/null || true
+fuser -k 3000/tcp 2>/dev/null || true
+pkill -f "AiGuardianApplication" 2>/dev/null || true
+pkill -f "localtunnel\|lt --port" 2>/dev/null || true
+sleep 2
+
 # 2. Build & Launch Backend Service
 echo ""
 echo "[2/4] Launching Spring Boot Backend Service (Port 8080)..."
 BACKEND_DIR="$PROJECT_ROOT/backend "
 cd "$BACKEND_DIR"
+
+# Touch source to force recompile
+touch src/main/java/com/hackathon/aiguardian/service/OpenRouterService.java
+
+# Pre-compile to ensure latest code is loaded
+$MAVEN_BIN compile -q 2>&1 | tail -3
+
 nohup $MAVEN_BIN spring-boot:run > "$PROJECT_ROOT/backend.log" 2>&1 &
 BACKEND_PID=$!
 echo "✔ Spring Boot Backend starting (PID: $BACKEND_PID, logs: backend.log)..."
