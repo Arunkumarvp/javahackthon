@@ -37,15 +37,35 @@ server:
 
 # ─── OpenRouter LLM ───────────────────────────────────────────────────────────
 openrouter:
-  api-key: ${OPENROUTER_API_KEY:}
+  api-key: ${OPENROUTER_API_KEY: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}
+  backup-key: ${OPENROUTER_BACKUP_KEY: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}
   base-url: ${OPENROUTER_BASE_URL:https://openrouter.ai/api/v1}
   model: ${OPENROUTER_MODEL:anthropic/claude-3.5-sonnet}
   timeout-ms: ${OPENROUTER_TIMEOUT_MS:30000}
   app-url: ${APP_URL:http://localhost:8080}
 
+
+# ─── Weaviate Vector Database ────────────────────────────────────────────────
+weaviate:
+  url: ${WEAVIATE_URL:http://localhost:8085}
+  class-name: ${WEAVIATE_CLASS_NAME:KnowledgeChunk}
+  enabled: ${WEAVIATE_ENABLED:true}
+
 # ─── RAG Service ──────────────────────────────────────────────────────────────
 rag:
   service-url: ${RAG_SERVICE_URL:http://localhost:8001}
+
+
+# ─── Banfico Mock Bank API ───────────────────────────────────────────────────
+banfico:
+  domain: ${BANFICO_DOMAIN:obiebank-sbx.banfico.io}
+  tenant: ${BANFICO_TENANT:provider}
+  client-id: ${BANFICO_CLIENT_ID:corebank-spa}
+  client-secret: ${BANFICO_CLIENT_SECRET:corebank-spa-password}
+  username: ${BANFICO_USERNAME:}
+  password: ${BANFICO_PASSWORD:}
+  account-id: ${BANFICO_ACCOUNT_ID:}
+  enabled: ${BANFICO_ENABLED:false}
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 logging:
@@ -56,3 +76,4 @@ logging:
     org.hibernate.SQL: WARN
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %-36logger{36} — %msg%n"
+

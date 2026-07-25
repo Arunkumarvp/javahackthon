@@ -1,80 +1,132 @@
-/**
- * App.jsx
- * 
- * Purpose:
- * Main Application Shell integrating authentication (Login & Sign Up), conversational AI chat,
- * financial summary metrics, AI access scope management, anomaly flags, and compliance audit streams.
- * 
- * Responsibilities:
- * - Manage user authentication state (Username & Password login/signup).
- * - Render Login and Sign Up screens when unauthenticated.
- * - Render master cockpit dashboard when authenticated, including logout controls.
- * - Orchestrate state via custom useChat hook.
- * 
- * Dependencies:
- * - ./hooks/useChat
- * - ./components/LoginPage
- * - ./components/SignupPage
- * - ./components/ChatPanel
- * - ./components/SummaryPanel
- * - ./components/AccessScopeIndicator
- * - ./components/AnomalyFlagCard
- * - ./components/AuditLogStream
- * - ./components/ConfirmActionModal
- * - lucide-react (Shield, Lock, LogOut, User)
- */
-
 import React, { useState, useEffect } from 'react';
-import { useChat } from './hooks/useChat';
-import { LoginPage } from './components/LoginPage';
-import { SignupPage } from './components/SignupPage';
+import { Sidebar } from './components/dashboard/Sidebar';
+import { Header } from './components/dashboard/Header';
+import { LoginPage } from './components/auth/LoginPage';
+import { SignupPage } from './components/auth/SignupPage';
+
+// Pages & Components
+import { DashboardPage } from './components/dashboard/DashboardPage';
+import { AccountsPage } from './components/accounts/AccountsPage';
+import { InsightsPage } from './components/insights/InsightsPage';
+import { RecommendationsPage } from './components/recommendations/RecommendationsPage';
+import { WorkflowsPage } from './components/workflows/WorkflowsPage';
 import { ChatPanel } from './components/ChatPanel';
-import { SummaryPanel } from './components/SummaryPanel';
-import { AccessScopeIndicator } from './components/AccessScopeIndicator';
-import { AnomalyFlagCard } from './components/AnomalyFlagCard';
-import { AuditLogStream } from './components/AuditLogStream';
 import { ConfirmActionModal } from './components/ConfirmActionModal';
-import { Shield, Lock, LogOut, User } from 'lucide-react';
+import { ProfilePage } from './components/profile/ProfilePage';
+import { chatService } from './services/chatService';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authView, setAuthView] = useState('login'); // 'login' | 'signup'
+  const [currentView, setCurrentView] = useState('home'); // 'home' | 'ai-chat' | 'insights' | 'recommendations' | 'workflows' | 'accounts' | 'profile'
+
+  // Chat State
+  const [chatMessages, setChatMessages] = useState([
+    {
+      id: 'welcome-1',
+      sender: 'assistant',
+      text: 'Hello! I am your AI Financial Guardian. I can monitor your Open Banking transactions, check balances, or initiate transfers with mandatory security gates.',
+      timestamp: 'Just now',
+      securityFlags: []
+    }
+  ]);
+  const [isThinking, setIsThinking] = useState(false);
+  const [thinkingStep, setThinkingStep] = useState('');
+  const [activePendingAction, setActivePendingAction] = useState(null);
 
   // Restore user session from localStorage if available
   useEffect(() => {
-    const savedUser = localStorage.getItem('guardian_user');
+    const savedUser = localStorage.getItem('wealthmanager_user');
     if (savedUser) {
       try {
         setCurrentUser(JSON.parse(savedUser));
       } catch (e) {
-        localStorage.removeItem('guardian_user');
+        localStorage.removeItem('wealthmanager_user');
       }
     }
   }, []);
 
   const handleAuthSuccess = (userObj) => {
     setCurrentUser(userObj);
-    localStorage.setItem('guardian_user', JSON.stringify(userObj));
+    localStorage.setItem('wealthmanager_user', JSON.stringify(userObj));
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
-    localStorage.removeItem('guardian_user');
+    localStorage.removeItem('wealthmanager_user');
     setAuthView('login');
+    setCurrentView('home');
   };
 
-  const {
-    messages,
-    pendingAction,
-    isThinking,
-    thinkingStep,
-    scope,
-    summary,
-    auditLogs,
-    sendMessage,
-    handleConfirmAction,
-    handleRevokeScope
-  } = useChat();
+  // AI Chat Handler
+  const handleSendMessage = async (userText, agentType = 'GENERAL') => {
+    const userMsgId = `usr-${Date.now()}`;
+    const userMsg = {
+      id: userMsgId,
+      sender: 'user',
+      text: userText,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setChatMessages((prev) => [...prev, userMsg]);
+    setIsThinking(true);
+    setThinkingStep(`Agent '${agentType}' reasoning with MCP tools...`);
+
+    try {
+      const response = await chatService.sendMessage(userText, agentType);
+      
+      const assistantMsg = {
+        id: response.messageId || `ai-${Date.now()}`,
+        sender: 'assistant',
+        text: response.aiResponse || response.message || 'Action processed.',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        toolCalls: response.toolCalls || [],
+        pendingAction: response.pendingAction,
+        securityFlags: response.securityFlags || []
+      };
+
+      setChatMessages((prev) => [...prev, assistantMsg]);
+
+      if (response.pendingAction) {
+        setActivePendingAction(response.pendingAction);
+      }
+    } catch (err) {
+      console.error('[AI Chat] Request failed:', err);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: `err-${Date.now()}`,
+          sender: 'assistant',
+          text: 'I encountered a connection error. Powered by backup intelligent simulation layer.',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          securityFlags: ['network_fallback']
+        }
+      ]);
+    } finally {
+      setIsThinking(false);
+      setThinkingStep('');
+    }
+  };
+
+  const handleConfirmAction = async (actionId, confirmed) => {
+    try {
+      const res = await chatService.confirmAction(actionId, confirmed);
+      setActivePendingAction(null);
+
+      const confirmNotice = {
+        id: `conf-${Date.now()}`,
+        sender: 'assistant',
+        text: res.message || (confirmed ? 'Transaction executed successfully via Open Banking Gateway.' : 'Transaction explicitly cancelled by user.'),
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        securityFlags: confirmed ? ['action_executed'] : ['action_cancelled']
+      };
+
+      setChatMessages((prev) => [...prev, confirmNotice]);
+    } catch (err) {
+      console.error('[Action Confirm] Failed:', err);
+      setActivePendingAction(null);
+    }
+  };
 
   // If user is not authenticated, render Login or Sign Up page
   if (!currentUser) {
@@ -95,95 +147,56 @@ export default function App() {
     );
   }
 
+  // Render main application shell
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Top Navbar */}
-      <header className="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          {/* Logo Brand */}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shadow-glow">
-              <Shield className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="font-extrabold text-base tracking-tight text-slate-100 flex items-center gap-2">
-                AI FINANCIAL GUARDIAN
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  TRUST-FIRST v1.0
-                </span>
-              </h1>
-              <p className="text-[11px] text-slate-400 hidden sm:block">
-                Transparent Open Banking Guardrails • Explicit Confirmations • Scoped Consent
-              </p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-wm-background flex">
+      {/* Left Sidebar */}
+      <Sidebar currentView={currentView} onNavigate={setCurrentView} />
 
-          {/* User Profile & Logout */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-300">
-              <User className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="font-medium">{currentUser.username}</span>
-            </div>
+      {/* Main Content Area */}
+      <main className="flex-1 ml-64 min-h-screen flex flex-col">
+        <div className="flex-1 max-w-[1200px] w-full mx-auto px-8 pb-8">
+          <Header user={currentUser} onLogout={handleLogout} onOpenProfile={() => setCurrentView('profile')} />
 
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-rose-300 border border-slate-700 text-xs font-medium transition-colors"
-              title="Sign Out"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
-          </div>
+          {/* Router Outlet */}
+          {currentView === 'home' && (
+            <DashboardPage onOpenAiChat={() => setCurrentView('ai-chat')} />
+          )}
+
+          {currentView === 'ai-chat' && (
+            <ChatPanel
+              messages={chatMessages}
+              isThinking={isThinking}
+              thinkingStep={thinkingStep}
+              onSendMessage={handleSendMessage}
+              onConfirmAction={(actionId) => handleConfirmAction(actionId, true)}
+              onCancelAction={(actionId) => handleConfirmAction(actionId, false)}
+            />
+          )}
+
+          {currentView === 'insights' && <InsightsPage />}
+          {currentView === 'recommendations' && <RecommendationsPage />}
+          {currentView === 'workflows' && <WorkflowsPage />}
+          {currentView === 'accounts' && <AccountsPage />}
+          {currentView === 'profile' && <ProfilePage />}
+          
+          {/* Fallback for un-implemented views */}
+          {currentView !== 'home' && currentView !== 'ai-chat' && currentView !== 'insights' && currentView !== 'recommendations' && currentView !== 'workflows' && currentView !== 'accounts' && currentView !== 'profile' && (
+            <div className="flex items-center justify-center h-64 text-wm-textMuted border-2 border-dashed border-wm-border rounded-xl">
+              <p>This view ({currentView}) is under construction.</p>
+            </div>
+          )}
         </div>
-      </header>
-
-      {/* Main Cockpit Layout */}
-      <main className="max-w-7xl mx-auto px-4 py-4 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left / Main Column: Conversational Interface (7 Cols) */}
-        <section className="lg:col-span-7 flex flex-col space-y-4">
-          <ChatPanel
-            messages={messages}
-            isThinking={isThinking}
-            thinkingStep={thinkingStep}
-            onSendMessage={sendMessage}
-            onConfirmAction={(id) => handleConfirmAction(id, true)}
-            onCancelAction={(id) => handleConfirmAction(id, false)}
-          />
-        </section>
-
-        {/* Right Sidebar: Security & Financial Overview (5 Cols) */}
-        <aside className="lg:col-span-5 space-y-4">
-          {/* Anomaly Alerts */}
-          <AnomalyFlagCard flags={['payee_close_match']} />
-
-          {/* Dashboard Summary */}
-          <SummaryPanel summary={summary} />
-
-          {/* AI Access Scope Indicator */}
-          <AccessScopeIndicator
-            scope={scope}
-            onRevokeScope={handleRevokeScope}
-          />
-
-          {/* Live Audit Stream */}
-          <AuditLogStream logs={auditLogs} />
-        </aside>
       </main>
 
-      {/* Modal Overlay for Pending High-Risk Action (if applicable) */}
-      {pendingAction && (
+      {/* High-Risk Action Modal */}
+      {activePendingAction && (
         <ConfirmActionModal
-          action={pendingAction}
-          onConfirm={(id) => handleConfirmAction(id, true)}
-          onCancel={(id) => handleConfirmAction(id, false)}
-          isModal={true}
+          action={activePendingAction}
+          onConfirm={() => handleConfirmAction(activePendingAction.actionId, true)}
+          onCancel={() => handleConfirmAction(activePendingAction.actionId, false)}
         />
       )}
-
-      {/* Footer */}
-      <footer className="border-t border-slate-800/60 bg-slate-900/40 py-3 px-4 text-center text-xs text-slate-500">
-        AI Financial Guardian &copy; 2026 • Secure Open Banking Demo • Built with React, Vite & Tailwind CSS
-      </footer>
     </div>
   );
 }

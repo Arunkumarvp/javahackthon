@@ -6,26 +6,24 @@ import java.util.List;
 /**
  * SummaryResponse
  *
- * Purpose: DTO carrying financial dashboard summary metrics to the frontend SummaryPanel.
- *
- * Responsibilities:
- * - Return current total balance, monthly spending, anomaly flag count, and recent transactions.
- *
- * Design: Immutable record. Matches frontend api.js mock structure exactly.
+ * Purpose: DTO carrying financial dashboard summary metrics and dynamic chart analytics to the frontend.
  */
 public record SummaryResponse(
 
     BigDecimal totalBalance,
     String currency,
     BigDecimal monthlySpending,
+    BigDecimal totalIncome,
+    BigDecimal totalSavings,
     Integer securityFlagsCount,
-    List<TransactionSummaryDto> recentTransactions
+    List<TransactionSummaryDto> recentTransactions,
+    List<ChartDataDto> barChartData,
+    List<ChartDataDto> lineChartData
 
 ) {
 
     /**
-     * Minimal transaction summary for the dashboard panel.
-     * flagReason is null for non-flagged transactions.
+     * Transaction summary DTO for the dashboard panel.
      */
     public record TransactionSummaryDto(
         String id,
@@ -35,5 +33,14 @@ public record SummaryResponse(
         String category,
         Boolean flagged,
         String flagReason
+    ) {}
+
+    /**
+     * Generic data point DTO for dashboard charts.
+     */
+    public record ChartDataDto(
+        String name,
+        BigDecimal value,
+        Boolean active
     ) {}
 }

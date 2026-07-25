@@ -1,24 +1,15 @@
-/**
- * ChatPanel.jsx
- * 
- * Purpose:
- * Main conversational interface component providing the primary interaction surface for
- * AI Financial Guardian.
- * 
- * Responsibilities:
- * - Render stream of chat message bubbles with auto-scroll to latest.
- * - Display thinking states ("🔍 Fetching transactions", "🔒 Verifying payee").
- * - Provide prompt suggestions for quick interactive testing.
- * - Capture user input and submit queries.
- * 
- * Dependencies:
- * - lucide-react (Send, Sparkles, Shield, Loader2)
- * - ./MessageBubble
- */
-
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, Shield, Loader2 } from 'lucide-react';
+import { Send, Clock, Sparkles, Shield, Loader2, Plus, Check } from 'lucide-react';
 import { MessageBubble } from './MessageBubble';
+
+const AGENTS = [
+  { id: 'GENERAL', label: 'General', icon: '🛡️' },
+  { id: 'BUDGET', label: 'Budget Analyst', icon: '💰' },
+  { id: 'TRIP', label: 'Trip Budget', icon: '✈️' },
+  { id: 'INVESTMENT', label: 'Investment Advisor', icon: '📉' },
+  { id: 'TAX', label: 'Tax Helper', icon: '📑' },
+  { id: 'SHOPPING', label: 'Shopping & Subs', icon: '🛍️' }
+];
 
 export function ChatPanel({
   messages = [],
@@ -29,9 +20,16 @@ export function ChatPanel({
   onCancelAction
 }) {
   const [inputText, setInputText] = useState('');
+  const [selectedAgent, setSelectedAgent] = useState('GENERAL');
+  const [showHistory, setShowHistory] = useState(false);
+  const [historySessions, setHistorySessions] = useState([
+    { id: 'sess-today-1', label: 'Today 11:30 AM — Open Banking Balance & VoP Transfer' },
+    { id: 'sess-yesterday-1', label: 'Yesterday 4:15 PM — Food Delivery Budget Optimization' },
+    { id: 'sess-prev-1', label: '23 Jul 2:00 PM — HMRC Tax Allowance Inquiry' }
+  ]);
+
   const chatEndRef = useRef(null);
 
-  // Auto scroll on new message
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isThinking]);
@@ -39,44 +37,56 @@ export function ChatPanel({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!inputText.trim() || isThinking) return;
-    onSendMessage(inputText);
+    onSendMessage(inputText, selectedAgent);
     setInputText('');
   };
 
-  const handleQuickPrompt = (promptText) => {
-    if (isThinking) return;
-    onSendMessage(promptText);
-  };
-
   return (
-    <div className="glass-panel rounded-2xl flex flex-col h-[calc(100vh-7rem)] min-h-[550px] glow-border-emerald relative overflow-hidden">
-      {/* Chat Header */}
-      <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900/80">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-            <Shield className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="font-semibold text-sm text-slate-100 flex items-center gap-2">
-              Guardian Assistant
-              <span className="flex h-2 w-2 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-            </h2>
-            <p className="text-[11px] text-slate-400">Zero-Trust Security & Open Banking Protected</p>
-          </div>
-        </div>
+    <div className="flex flex-col h-[calc(100vh-6rem)] min-h-[580px] bg-slate-50/50 rounded-2xl border border-wm-border overflow-hidden relative font-sans">
+      {/* Top Header Bar with History Toggle */}
+      <div className="px-6 py-3 border-b border-wm-border bg-white flex items-center justify-between">
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-wm-border hover:bg-slate-50 text-xs font-semibold text-wm-textMain transition-colors"
+        >
+          <Clock className="w-3.5 h-3.5 text-wm-textMuted" />
+          <span>History</span>
+        </button>
 
-        {/* Status Pill */}
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-slate-300 text-xs font-medium">
-          <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Active Guardian</span>
+        <div className="flex items-center gap-2">
+          <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>June AI Engine Active</span>
+          </span>
         </div>
       </div>
 
-      {/* Messages Stream */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* History Drawer Overlay */}
+      {showHistory && (
+        <div className="absolute top-12 left-6 z-20 w-80 bg-white border border-wm-border rounded-xl shadow-xl p-4 animate-in fade-in duration-150">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
+            <span className="text-xs font-bold text-wm-textMain uppercase tracking-wider">Conversation History</span>
+            <button onClick={() => setShowHistory(false)} className="text-xs text-wm-textMuted hover:text-wm-textMain">Close</button>
+          </div>
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {historySessions.map((sess) => (
+              <div key={sess.id} className="p-2.5 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-200 cursor-pointer text-xs text-wm-textMain font-medium transition-all">
+                {sess.label}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Date Divider */}
+      <div className="flex justify-center my-3">
+        <span className="px-3 py-0.5 rounded-full bg-slate-200/80 text-[11px] font-bold text-slate-600 uppercase tracking-wide">
+          Today
+        </span>
+      </div>
+
+      {/* Chat Messages Stream */}
+      <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4">
         {messages.map((msg) => (
           <MessageBubble
             key={msg.id}
@@ -86,14 +96,13 @@ export function ChatPanel({
           />
         ))}
 
-        {/* Thinking Indicator */}
         {isThinking && (
           <div className="flex items-center gap-3 my-4">
-            <div className="w-8 h-8 rounded-lg bg-cyan-600/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-700 flex items-center justify-center shrink-0">
               <Loader2 className="w-4 h-4 animate-spin" />
             </div>
-            <div className="px-4 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-300 flex items-center gap-2">
-              <span className="font-medium text-cyan-300">{thinkingStep || 'AI is reasoning securely...'}</span>
+            <div className="px-4 py-2 rounded-xl bg-white border border-wm-border text-xs text-wm-textMain font-medium shadow-sm">
+              <span>{thinkingStep || 'June AI is reasoning with MCP tools...'}</span>
             </div>
           </div>
         )}
@@ -101,47 +110,56 @@ export function ChatPanel({
         <div ref={chatEndRef} />
       </div>
 
-      {/* Quick Action Suggestions */}
-      <div className="px-4 py-2 bg-slate-900/60 border-t border-slate-800/80 flex items-center gap-2 overflow-x-auto no-scrollbar">
-        <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider shrink-0">Prompts:</span>
-        <button
-          onClick={() => handleQuickPrompt("Pay John Smith £200 for consulting")}
-          className="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-emerald-300 border border-slate-700 text-xs shrink-0 transition-colors"
-        >
-          💳 Pay John Smith £200
-        </button>
-        <button
-          onClick={() => handleQuickPrompt("What is my total balance across accounts?")}
-          className="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-emerald-300 border border-slate-700 text-xs shrink-0 transition-colors"
-        >
-          📊 What is my balance?
-        </button>
-        <button
-          onClick={() => handleQuickPrompt("Check recent transactions for anomalies")}
-          className="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-emerald-300 border border-slate-700 text-xs shrink-0 transition-colors"
-        >
-          🛡️ Check anomalies
+      {/* Agent Selector Bar */}
+      <div className="px-6 py-2 flex items-center justify-center gap-2 flex-wrap">
+        <span className="text-xs font-semibold text-wm-textMuted mr-1">Agent:</span>
+        {AGENTS.map((agent) => {
+          const isSelected = selectedAgent === agent.id;
+          return (
+            <button
+              key={agent.id}
+              onClick={() => setSelectedAgent(agent.id)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                isSelected
+                  ? 'bg-blue-100 text-wm-blue border border-blue-300 shadow-sm'
+                  : 'bg-white border border-wm-border text-wm-textMain hover:bg-slate-50'
+              }`}
+            >
+              <span>{agent.icon}</span>
+              <span>{agent.label}</span>
+            </button>
+          );
+        })}
+        <button className="px-3.5 py-1.5 rounded-full text-xs font-semibold border border-dashed border-wm-border text-wm-textMuted hover:bg-slate-50 flex items-center gap-1">
+          <Plus className="w-3 h-3" />
+          <span>More</span>
         </button>
       </div>
 
-      {/* Input Bar */}
-      <form onSubmit={handleSubmit} className="p-3 bg-slate-900 border-t border-slate-800 flex items-center gap-2">
-        <input
-          type="text"
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          placeholder="Ask financial question or request transfer (e.g. Pay John Smith £200)..."
-          disabled={isThinking}
-          className="flex-1 bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-slate-500 outline-none transition-colors"
-        />
-        <button
-          type="submit"
-          disabled={isThinking || !inputText.trim()}
-          className="p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-600 text-white font-medium shadow-glow transition-all active:scale-[0.97]"
-        >
-          <Send className="w-4 h-4" />
-        </button>
-      </form>
+      {/* Input Box Shell */}
+      <div className="p-4 bg-white border-t border-wm-border flex flex-col items-center gap-2">
+        <form onSubmit={handleSubmit} className="w-full max-w-3xl relative flex items-center">
+          <input
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            placeholder="Ask June anything about your finances..."
+            disabled={isThinking}
+            className="w-full bg-white border border-wm-border focus:border-wm-blue rounded-full pl-5 pr-14 py-3 text-sm text-wm-textMain placeholder-slate-400 outline-none transition-all shadow-sm"
+          />
+          <button
+            type="submit"
+            disabled={isThinking || !inputText.trim()}
+            className="absolute right-2 top-1.5 bottom-1.5 px-4 rounded-full bg-wm-blue hover:bg-wm-blue-hover disabled:opacity-40 text-white font-medium transition-all flex items-center justify-center shadow-sm"
+          >
+            <Send className="w-4 h-4 fill-white" />
+          </button>
+        </form>
+
+        <span className="text-[11px] text-wm-textMuted">
+          June AI can make mistakes. Consider verifying important information.
+        </span>
+      </div>
     </div>
   );
 }
