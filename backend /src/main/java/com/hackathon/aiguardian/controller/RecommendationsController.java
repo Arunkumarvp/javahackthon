@@ -19,10 +19,11 @@ import java.util.Map;
  *
  * Responsibilities:
  * - GET /api/recommendations (supports search `q`, `sortBy`, `sortDir`, `month`, `page`, `size`)
- * - GET /api/recommendations/{id}
  * - GET /api/recommendations/spending-trend
- * - POST /api/recommendations/{id}/spending-limit
  * - GET /api/recommendations/weekend-spike/breakdown
+ * - GET /api/recommendations/{id}
+ * - POST /api/recommendations/{id}/spending-limit
+ * - POST /api/recommendations/{id}/apply
  *
  * Dependencies:
  * - RecommendationService
@@ -54,15 +55,6 @@ public class RecommendationsController {
     }
 
     /**
-     * Retrieves full detail for a single recommendation.
-     */
-    @GetMapping("/{id}")
-    public ResponseEntity<RecommendationDto> getRecommendationById(@PathVariable String id) {
-        log.info("[RecommendationsController] GET /api/recommendations/{}", id);
-        return ResponseEntity.ok(recommendationService.getRecommendationById(id));
-    }
-
-    /**
      * Retrieves spending trend chart series and AI insight text.
      */
     @GetMapping("/spending-trend")
@@ -87,9 +79,18 @@ public class RecommendationsController {
     }
 
     /**
+     * Retrieves full detail for a single recommendation by ID.
+     */
+    @GetMapping("/{id:[a-zA-Z0-9_\\-]+}")
+    public ResponseEntity<RecommendationDto> getRecommendationById(@PathVariable String id) {
+        log.info("[RecommendationsController] GET /api/recommendations/{}", id);
+        return ResponseEntity.ok(recommendationService.getRecommendationById(id));
+    }
+
+    /**
      * Posts a new spending limit rule for a recommendation.
      */
-    @PostMapping("/{id}/spending-limit")
+    @PostMapping("/{id:[a-zA-Z0-9_\\-]+}/spending-limit")
     public ResponseEntity<Map<String, Object>> setSpendingLimit(
         @PathVariable String id,
         @Valid @RequestBody SpendingLimitRequest request
@@ -111,7 +112,7 @@ public class RecommendationsController {
     /**
      * Applies a recommendation action.
      */
-    @PostMapping("/{id}/apply")
+    @PostMapping("/{id:[a-zA-Z0-9_\\-]+}/apply")
     public ResponseEntity<Map<String, Object>> applyRecommendation(@PathVariable String id) {
         log.info("[RecommendationsController] POST /api/recommendations/{}/apply", id);
         return ResponseEntity.ok(Map.of(
