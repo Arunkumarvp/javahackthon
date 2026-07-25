@@ -58,7 +58,7 @@ public class McpToolRegistry {
 
                     result.put("passages", formatted);
                     result.put("sources", sources);
-                    result.put("summary", "Retrieved " + chunks.size() + " passage(s) from: " + String.join(", ", sources));
+                    result.put("summary", "Knowledge Base Reference Details (" + String.join(", ", sources) + "):\n\n" + formatted);
                 }
             }
             case "plan_trip_budget" -> {
@@ -106,10 +106,10 @@ public class McpToolRegistry {
                 String providedName = args.getOrDefault("payeeName", "John Smith").toString();
                 String registeredName = args.getOrDefault("registeredName", providedName).toString();
                 String sortCode = args.getOrDefault("sortCode", "20-45-11").toString();
-                String accountNum = args.getOrDefault("accountNumber", "88392019").toString();
+                String accountNumber = args.getOrDefault("accountNumber", "88392019").toString();
                 String bankName = args.getOrDefault("bankName", "Barclays Bank").toString();
 
-                var vop = payeeVerificationService.verifyPayee(providedName, registeredName, accountNum, sortCode, bankName);
+                var vop = payeeVerificationService.verifyPayee(providedName, registeredName, accountNumber, sortCode, bankName);
                 result.put("vopStatus", vop.status());
                 result.put("confidenceScore", vop.matchConfidence());
                 result.put("notes", vop.notes());

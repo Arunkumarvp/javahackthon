@@ -1,8 +1,13 @@
 package com.hackathon.aiguardian.service;
 
+import com.hackathon.aiguardian.model.User;
+import com.hackathon.aiguardian.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -11,18 +16,24 @@ import org.springframework.web.client.RestTemplate;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Optional;
 
 /**
  * TwilioAlertService
  *
  * Purpose: Handles SMS / WhatsApp budget alert dispatching via Twilio REST API.
  *
- * Configured with Twilio credentials:
- * - Account SID: AC070142848016b183420bd19bf31815c3
- * - Auth Token: 29ba9371a865996c4801172c5957ff02
- * - From Number: +14155238886
- * - To Number: +919659505941
- * - Template ID: HX4fdb88974ef98b0736268c6c02a7f806
+ * Responsibilities:
+ * - Dispatch budget alert notifications via Twilio Content API template.
+ * - Provide fallback dispatch using direct SMS body text if template dispatch fails.
+ * - Resolve dynamic user information for budget alerts from SecurityContext or UserRepository.
+ *
+ * Dependencies:
+ * - UserRepository: Optional data repository to look up fallback user info.
+ * - RestTemplate: HTTP client for sending requests to Twilio REST API endpoints.
+ *
+ * Usage:
+ * Inject TwilioAlertService into services or controllers to trigger SMS/WhatsApp alerts.
  */
 @Slf4j
 @Service
@@ -43,12 +54,23 @@ public class TwilioAlertService {
     @Value("${twilio.template-id:HX4fdb88974ef98b0736268c6c02a7f806}")
     private String templateId;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+    private final UserRepository userRepository;
+
+    /**
+     * Constructs TwilioAlertService with optional UserRepository dependency using constructor injection.
+     *
+     * @param userRepository repository for querying user details (optional)
+     */
+    @Autowired
+    public TwilioAlertService(@Autowired(required = false) UserRepository userRepository) {
+        this.userRepository = userRepository;
+        this.restTemplate = new RestTemplate();
+    }
 
     /**
      * Sends an alert notification using Twilio Content Template ID (ContentSid)
-     * with template parameters {{userName}} and {{category}}.
-     * Note: Message body is omitted as requested.
+     * with template parameters userName and category.
      *
      * @param userName     The customer name (e.g. "Alex Morgan")
      * @param category     The budget category (e.g. "Food & Dining")
@@ -76,8 +98,8 @@ public class TwilioAlertService {
             String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
             headers.set("Authorization", "Basic " + encodedAuth);
 
-            // Attempt 1: ContentSid + ContentVariables JSON
-            String contentVariablesJson = String.format("{\"1\":\"%s\",\"2\":\"%s\"}", userName, category);
+            // Attempt 1: ContentSid + ContentVariables JSON with named keys
+            String contentVariablesJson = String.format("{\"userName\":\"%s\",\"category\":\"%s\"}", userName, category);
 
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
             body.add("From", fromNumber);
@@ -119,19 +141,26 @@ public class TwilioAlertService {
         }
     }
 
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
-    private com.hackathon.aiguardian.repository.UserRepository userRepository;
-
+    /**
+     * Sends an alert notification by resolving the user's name dynamically
+     * from SecurityContext or UserRepository before calling sendBudgetAlert.
+     *
+     * @param category     The budget category
+     * @param currentSpend Total spent amount
+     * @param limitAmount  Set budget limit amount
+     * @param percentage   Calculated spend percentage
+     * @return boolean true if dispatch succeeded
+     */
     public boolean sendBudgetAlert(String category, BigDecimal currentSpend, BigDecimal limitAmount, double percentage) {
         String dynamicUserName = "Alex Morgan";
         try {
-            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.getPrincipal() instanceof com.hackathon.aiguardian.model.User user) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getPrincipal() instanceof User user) {
                 if (user.getUsername() != null && !user.getUsername().isBlank()) {
                     dynamicUserName = user.getUsername();
                 }
             } else if (userRepository != null) {
-                java.util.Optional<com.hackathon.aiguardian.model.User> firstUser = userRepository.findAll().stream().findFirst();
+                Optional<User> firstUser = userRepository.findAll().stream().findFirst();
                 if (firstUser.isPresent() && firstUser.get().getUsername() != null && !firstUser.get().getUsername().isBlank()) {
                     dynamicUserName = firstUser.get().getUsername();
                 }
