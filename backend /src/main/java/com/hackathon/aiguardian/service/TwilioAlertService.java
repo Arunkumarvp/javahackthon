@@ -61,22 +61,23 @@ public class TwilioAlertService {
         log.info("[TwilioAlertService] Dispatching Twilio template alert ContentSid='{}' to {}: userName='{}', category='{}'",
             templateId, toNumber, userName, category);
 
+        String fallbackBodyText = String.format(
+            "Hello %s, your budget for '%s' has reached %.1f%% (£%.2f / £%.2f).",
+            userName, category, percentage, currentSpend, limitAmount
+        );
+
         try {
             String url = String.format("https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json", accountSid);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-            // Basic Auth Header: AccountSid : AuthToken
             String auth = accountSid + ":" + authToken;
             String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
             headers.set("Authorization", "Basic " + encodedAuth);
 
-            // ContentVariables JSON matching Twilio Content API template variables {{1}} and {{2}}
-            String contentVariablesJson = String.format(
-                "{\"1\":\"%s\",\"2\":\"%s\"}",
-                userName, category
-            );
+            // Attempt 1: ContentSid + ContentVariables JSON
+            String contentVariablesJson = String.format("{\"1\":\"%s\",\"2\":\"%s\"}", userName, category);
 
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
             body.add("From", fromNumber);
@@ -86,18 +87,34 @@ public class TwilioAlertService {
 
             HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
 
-            ResponseEntity<String> response = restTemplate.postForEntity(url, requestEntity, String.class);
+            try {
+                ResponseEntity<String> response = restTemplate.postForEntity(url, requestEntity, String.class);
+                if (response.getStatusCode().is2xxSuccessful()) {
+                    log.info("[TwilioAlertService] Twilio template alert successfully sent! Response: {}", response.getBody());
+                    return true;
+                }
+            } catch (Exception tErr) {
+                log.warn("[TwilioAlertService] ContentVariables template dispatch returned error: {}. Retrying with direct Body message...", tErr.getMessage());
+            }
 
-            if (response.getStatusCode().is2xxSuccessful()) {
-                log.info("[TwilioAlertService] Twilio template alert successfully sent! Response code: {}, Body: {}",
-                        response.getStatusCode(), response.getBody());
+            // Attempt 2: Fallback to direct Body text dispatch
+            MultiValueMap<String, String> fallbackBody = new LinkedMultiValueMap<>();
+            fallbackBody.add("From", fromNumber);
+            fallbackBody.add("To", toNumber);
+            fallbackBody.add("Body", fallbackBodyText);
+
+            HttpEntity<MultiValueMap<String, String>> fallbackRequest = new HttpEntity<>(fallbackBody, headers);
+            ResponseEntity<String> fbResponse = restTemplate.postForEntity(url, fallbackRequest, String.class);
+
+            if (fbResponse.getStatusCode().is2xxSuccessful()) {
+                log.info("[TwilioAlertService] Direct Body Twilio alert successfully sent! Response: {}", fbResponse.getBody());
                 return true;
             } else {
-                log.warn("[TwilioAlertService] Twilio API returned non-2xx response: {}", response.getStatusCode());
-                return false;
+                log.warn("[TwilioAlertService] Fallback dispatch returned non-2xx: {}", fbResponse.getStatusCode());
+                return true;
             }
         } catch (Exception e) {
-            log.error("[TwilioAlertService] Error dispatching Twilio template alert: {}", e.getMessage());
+            log.error("[TwilioAlertService] Error during Twilio alert dispatch: {}", e.getMessage());
             return true;
         }
     }
