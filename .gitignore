@@ -1,0 +1,122 @@
+# ==============================================================================
+# AI Financial Guardian - Root .gitignore
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Secrets & Environment Variables
+# ------------------------------------------------------------------------------
+.env
+*.env
+*.env.local
+*.env.*.local
+!.env.example
+*.pem
+*.key
+*.cert
+*.p12
+*.jks
+
+# ------------------------------------------------------------------------------
+# Common / OS
+# ------------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*~
+*.log
+
+# ------------------------------------------------------------------------------
+# IDEs and Editors
+# ------------------------------------------------------------------------------
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+gen/
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+*.code-workspace
+.history/
+
+# ------------------------------------------------------------------------------
+# Frontend (React / Vite / Node.js)
+# ------------------------------------------------------------------------------
+frontend/node_modules/
+node_modules/
+frontend/dist/
+dist/
+frontend/build/
+build/
+frontend/.npm
+.npm
+frontend/.eslintcache
+frontend/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# ------------------------------------------------------------------------------
+# Backend (Java / Spring Boot / Maven)
+# ------------------------------------------------------------------------------
+backend/target/
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+
+# ------------------------------------------------------------------------------
+# AI Core (Python / RAG / Data)
+# ------------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.venv/
+venv/
+env/
+ENV/
+# Jupyter Notebook
+.ipynb_checkpoints
+# Vector Stores / Data
+ai-core/rag/embeddings/vector_store/
+ai-core/data/
+ai-core/models/
+
+# ------------------------------------------------------------------------------
+# Agent / Assistant local directories
+# ------------------------------------------------------------------------------
+.agents/scratch/
+.gemini/

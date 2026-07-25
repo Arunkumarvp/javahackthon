@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-950 text-slate-100 antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+/* Glassmorphism card utilities */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-interactive {
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel-interactive:hover {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 20px -2px rgba(16, 185, 129, 0.15);
+}
+
+/* Glowing accent borders */
+.glow-border-emerald {
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: inset 0 0 15px rgba(16, 185, 129, 0.05), 0 0 15px rgba(16, 185, 129, 0.15);
+}
+
+.glow-border-amber {
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  box-shadow: inset 0 0 15px rgba(245, 158, 11, 0.05), 0 0 15px rgba(245, 158, 11, 0.15);
+}
+
+.glow-border-rose {
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  box-shadow: inset 0 0 15px rgba(244, 63, 94, 0.05), 0 0 15px rgba(244, 63, 94, 0.15);
+}
+
+/* Custom sleek scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.6);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.5);
+}

@@ -1,0 +1,179 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "get_balance",
+      "description": "Retrieves the current account balance for the authenticated user. Use this for any balance, available funds, or account overview query.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "description": "The account identifier (optional — defaults to the user's primary account)"
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "get_transactions",
+      "description": "Retrieves recent transaction history for the authenticated user. Use this when the user asks about spending, recent activity, or transaction history.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "Number of transactions to retrieve. Default: 10, max: 50."
+          },
+          "category": {
+            "type": "string",
+            "description": "Optional category filter (e.g. 'Shopping', 'Groceries', 'Transfer')"
+          }
+        },
+        "required": []
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "verify_payee",
+      "description": "Runs a Verification of Payee (VoP) check against the Open Banking registry. ALWAYS call this before any execute_transfer call. Returns MATCH, CLOSE_MATCH, or NO_MATCH with a confidence score.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "provided_name": {
+            "type": "string",
+            "description": "Payee name as provided by the user"
+          },
+          "registered_name": {
+            "type": "string",
+            "description": "Expected registered name at the receiving bank (may equal provided_name initially)"
+          },
+          "account_number": {
+            "type": "string",
+            "description": "Target account number"
+          },
+          "sort_code": {
+            "type": "string",
+            "description": "Target sort code in format XX-XX-XX"
+          },
+          "bank_name": {
+            "type": "string",
+            "description": "Name of the receiving bank"
+          }
+        },
+        "required": ["provided_name", "account_number", "sort_code"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "execute_transfer",
+      "description": "REQUIRES USER CONFIRMATION. Initiates a payment transfer to an external payee via Open Banking. This is a STATE-MUTATING action — it triggers the Confirm-Before-Action gate and will NOT execute until the user explicitly confirms via the /api/actions/confirm endpoint.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "payee_name": {
+            "type": "string",
+            "description": "Full name of the payment recipient"
+          },
+          "account_number": {
+            "type": "string",
+            "description": "Recipient account number"
+          },
+          "sort_code": {
+            "type": "string",
+            "description": "Recipient sort code in format XX-XX-XX"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Amount to transfer in GBP"
+          },
+          "currency": {
+            "type": "string",
+            "description": "Transfer currency (default: GBP)",
+            "default": "GBP"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Payment reference or description"
+          },
+          "bank_name": {
+            "type": "string",
+            "description": "Name of the recipient's bank"
+          }
+        },
+        "required": ["payee_name", "account_number", "sort_code", "amount"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "set_budget_alert",
+      "description": "REQUIRES USER CONFIRMATION. Sets a monthly budget spending alert threshold for a category. This is a STATE-MUTATING action that triggers the Confirm-Before-Action gate.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Spending category to monitor (e.g. 'Shopping', 'Dining', 'overall')"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Monthly spending limit in GBP"
+          },
+          "alert_threshold_percent": {
+            "type": "integer",
+            "description": "Alert when spending reaches this percentage of the limit (default: 80)",
+            "default": 80
+          }
+        },
+        "required": ["category", "limit"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "flag_transaction",
+      "description": "Flags a specific transaction for review or dispute. Use when the user reports a suspicious or incorrect transaction.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "transaction_id": {
+            "type": "string",
+            "description": "The transaction identifier to flag"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Reason for flagging the transaction (e.g. 'Unauthorised charge', 'Incorrect amount')"
+          }
+        },
+        "required": ["transaction_id", "reason"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "rag_lookup",
+      "description": "Retrieves relevant information from the AI Financial Guardian knowledge base. Use this to answer questions about banking regulations, Open Banking policies, dispute processes, or security procedures.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The question or topic to look up in the knowledge base"
+          }
+        },
+        "required": ["query"]
+      }
+    }
+  }
+]
