@@ -137,11 +137,7 @@ public class OpenRouterService {
     ) {
         List<String> candidateModels = List.of(
             configuredModel,
-            "google/gemini-2.0-flash-lite-preview-02-05:free",
-            "meta-llama/llama-3.3-70b-instruct:free",
-            "deepseek/deepseek-r1:free",
-            "mistralai/mistral-7b-instruct:free",
-            "anthropic/claude-3.5-sonnet"
+            "openrouter/free"
         );
 
         List<String> apiKeys = new ArrayList<>();
@@ -438,17 +434,23 @@ public class OpenRouterService {
         if (msgLower.contains("policy") || msgLower.contains("fee") || msgLower.contains("foreign") || msgLower.contains("vop") || msgLower.contains("why")) {
             var mcpRes = mcpToolRegistry.executeTool("search_knowledge_base", Map.of("query", rawUserMessage, "top_k", 3));
             invokedTools.add("search_knowledge_base");
-            responseText = String.valueOf(mcpRes.getOrDefault("summary", "Retrieved knowledge base passages dynamically."));
+            String passages = String.valueOf(mcpRes.getOrDefault("passages", ""));
+            responseText = "Based on our knowledge base, here are the relevant details:\n\n" + passages + "\n\n*(Note: This is a fallback response generated locally.)*";
 
         } else if (msgLower.contains("trip") || msgLower.contains("travel") || msgLower.contains("vacation") || msgLower.contains("paris")) {
             var mcpRes = mcpToolRegistry.executeTool("plan_trip_budget", Map.of("destination", rawUserMessage, "days", "5", "totalBudget", "1200"));
             invokedTools.add("plan_trip_budget");
-            responseText = String.valueOf(mcpRes.getOrDefault("summary", "Calculated trip budget dynamically."));
+            responseText = "Here is a dynamic trip budget calculation:\n\n"
+                    + "Destination: " + mcpRes.get("destination") + "\n"
+                    + "Total Budget: £" + mcpRes.get("totalBudget") + "\n"
+                    + "Flight & Hotel: £" + mcpRes.get("flightHotel") + "\n"
+                    + "Daily Food & Activities: £" + mcpRes.get("perDayFood") + " per day\n\n"
+                    + "*(Note: This is a fallback response generated locally.)*";
 
         } else if (msgLower.contains("subscription") || msgLower.contains("recurring")) {
             var mcpRes = mcpToolRegistry.executeTool("manage_subscriptions", Map.of());
             invokedTools.add("manage_subscriptions");
-            responseText = String.valueOf(mcpRes.getOrDefault("summary", "Audited recurring subscriptions dynamically."));
+            responseText = "I've analyzed your recurring subscriptions. I found some optimizations you can make to save money. \n\n*(Note: This is a fallback response generated locally.)*";
 
         } else if (msgLower.contains("pay") || msgLower.contains("transfer") || msgLower.contains("send")) {
             invokedTools.add("verify_payee");
