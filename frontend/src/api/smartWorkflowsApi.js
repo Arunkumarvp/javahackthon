@@ -6,13 +6,11 @@
  */
 
 const getBaseUrl = () => {
-  if (
-    typeof window !== 'undefined' &&
-    (window.location.port === '3000' ||
-      window.location.port === '5173' ||
-      window.location.port === '4173')
-  ) {
-    return 'http://localhost:8080/api';
+  if (typeof window !== 'undefined' && window.__API_BASE_URL__) {
+    return window.__API_BASE_URL__;
+  }
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
   }
   return '/api';
 };

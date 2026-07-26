@@ -89,15 +89,18 @@ TUNNEL_PID=$!
 sleep 4
 TUNNEL_URL=$(grep -o 'https://[^ ]*' "$PROJECT_ROOT/tunnel.log" | head -n 1 || echo "http://localhost:3000")
 
+LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")
+
 echo ""
 echo "========================================================================="
 echo "               🚀 APPLICATION DEPLOYMENT SUCCESSFUL                     "
 echo "========================================================================="
-echo " Local Access URL  : http://localhost:3000"
-echo " Backend API URL   : http://localhost:8080/api"
-echo " Public Access Link: $TUNNEL_URL"
+echo " Local Access URL   : http://localhost:3000"
+echo " Network Access URL : http://${LOCAL_IP}:3000"
+echo " Backend API URL    : http://localhost:8080/api"
+echo " Public Access Link : $TUNNEL_URL"
 echo "========================================================================="
-echo " Share the Public Access Link with anyone to test the live AI app!"
+echo " Share Network/Public Access Links with endusers to test live!"
 echo " Logs are saved in backend.log, frontend.log, and tunnel.log"
 echo " Press Ctrl+C to stop all services."
 echo "========================================================================="

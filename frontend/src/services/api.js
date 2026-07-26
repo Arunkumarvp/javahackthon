@@ -7,8 +7,11 @@
  */
 
 const getBaseUrl = () => {
-  if (typeof window !== 'undefined' && (window.location.port === '3000' || window.location.port === '5173' || window.location.port === '4173')) {
-    return 'http://localhost:8080/api';
+  if (typeof window !== 'undefined' && window.__API_BASE_URL__) {
+    return window.__API_BASE_URL__;
+  }
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
   }
   return '/api';
 };
@@ -38,15 +41,16 @@ export async function apiRequest(endpoint, options = {}) {
     }
     return await response.json();
   } catch (err) {
-    console.warn(`[API] Primary request to ${BASE_URL}${endpoint} failed (${err.message}). Trying fallback endpoint...`);
+    console.warn(`[API] Primary request to ${BASE_URL}${endpoint} failed (${err.message}). Trying dynamic network fallback...`);
     try {
-      // Fallback try local proxy path /api
-      const fallbackResp = await fetch(`/api${endpoint}`, config);
+      const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+      const fallbackUrl = `http://${host}:8080/api${endpoint}`;
+      const fallbackResp = await fetch(fallbackUrl, config);
       if (fallbackResp.ok) {
         return await fallbackResp.json();
       }
     } catch (fallbackErr) {
-      console.warn(`[API] Local proxy fallback failed. Utilizing dynamic client simulation.`, fallbackErr.message);
+      console.warn(`[API] Dynamic fallback failed. Utilizing client simulation.`, fallbackErr.message);
     }
     return handleMockFallback(endpoint, options);
   }
