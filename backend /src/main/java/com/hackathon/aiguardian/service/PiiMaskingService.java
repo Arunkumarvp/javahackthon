@@ -77,6 +77,10 @@ public class PiiMaskingService {
         return masked;
     }
 
+    public String maskSensitiveInfo(String payload) {
+        return maskPii(payload);
+    }
+
     /**
      * Masks a sort code string, revealing only the last two digits for identification.
      *

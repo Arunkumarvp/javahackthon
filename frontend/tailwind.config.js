@@ -4,45 +4,32 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: 'class',
+  darkMode: 'class', // Keeping class just in case, but default will be light
   theme: {
     extend: {
       colors: {
-        brand: {
-          50: '#ecfdf5',
-          100: '#d1fae5',
-          500: '#10b981',
-          600: '#059669',
-          700: '#047857',
-          900: '#064e3b',
-        },
-        guardian: {
-          dark: '#0f172a',
-          surface: '#1e293b',
-          border: '#334155',
-          card: '#1e293b99',
-          cyan: '#06b6d4',
-          amber: '#f59e0b',
-          rose: '#f43f5e',
+        wm: {
+          background: '#f4f6f8', // Light grey background
+          card: '#ffffff',
+          textMain: '#1e293b', // Slate 800
+          textMuted: '#64748b', // Slate 500
+          border: '#e2e8f0', // Slate 200
+          blue: {
+            DEFAULT: '#005a8d', // Main deep blue for accents and bars
+            light: '#e6f0f5', // Light blue background for active states
+            hover: '#004a75'
+          },
+          green: {
+            DEFAULT: '#15803d', // Green for line chart and positive numbers
+            light: '#dcfce7'
+          }
         }
       },
       fontFamily: {
-        sans: ['Outfit', 'Inter', 'sans-serif'],
+        sans: ['Inter', 'sans-serif'],
       },
       boxShadow: {
-        glow: '0 0 20px -5px rgba(16, 185, 129, 0.3)',
-        'glow-amber': '0 0 20px -5px rgba(245, 158, 11, 0.3)',
-        'glow-rose': '0 0 20px -5px rgba(244, 63, 94, 0.3)',
-      },
-      animation: {
-        'pulse-subtle': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'float': 'float 6s ease-in-out infinite',
-      },
-      keyframes: {
-        float: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-6px)' },
-        }
+        'card': '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.025)',
       }
     },
   },

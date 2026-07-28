@@ -162,14 +162,18 @@
   {
     "type": "function",
     "function": {
-      "name": "rag_lookup",
-      "description": "Retrieves relevant information from the AI Financial Guardian knowledge base. Use this to answer questions about banking regulations, Open Banking policies, dispute processes, or security procedures.",
+      "name": "search_knowledge_base",
+      "description": "Search internal policy documents, product FAQs, and help articles for passages relevant to a user question. Use for anything about how the product/policy works, not for the user's personal account data.",
       "parameters": {
         "type": "object",
         "properties": {
           "query": {
             "type": "string",
-            "description": "The question or topic to look up in the knowledge base"
+            "description": "Natural-language search query"
+          },
+          "top_k": {
+            "type": "integer",
+            "description": "Number of passages to return, default 5"
           }
         },
         "required": ["query"]
