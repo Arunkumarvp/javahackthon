@@ -48,7 +48,7 @@ public class TwilioAlertService {
     @Value("${twilio.from-number:+14155238886}")
     private String fromNumber;
 
-    @Value("${twilio.to-number:+919659505941}")
+    @Value("${twilio.to-number:++918555327504}")
     private String toNumber;
 
     @Value("${twilio.template-id:HX4fdb88974ef98b0736268c6c02a7f806}")
